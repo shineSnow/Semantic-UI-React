@@ -29,6 +29,15 @@ export const WIDTHS = [
   ..._.values(numberToWordMap),
 ]
 
+export const ENTIRE_TRANSITIONS = [
+  'scale',
+  'fade', 'fade up', 'fade down', 'fade left', 'fade right',
+]
+export const STATIC_TRANSITIONS = [
+  'jiggle', 'flash',
+]
+export const TRANSITION = [...ENTIRE_TRANSITIONS, ...STATIC_TRANSITIONS]
+
 // Generated from:
 // https://github.com/Semantic-Org/Semantic-UI/blob/master/dist/components/icon.css
 export const WEB_CONTENT_ICONS = [

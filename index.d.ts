@@ -153,6 +153,8 @@ export { default as Sidebar, SidebarProps } from './dist/commonjs/modules/Sideba
 export { default as SidebarPushable, SidebarPushableProps } from './dist/commonjs/modules/Sidebar/SidebarPushable';
 export { default as SidebarPusher, SidebarPusherProps } from './dist/commonjs/modules/Sidebar/SidebarPusher';
 
+/* TODO: EXPORT TRANSITION */
+
 // Views
 export { default as Advertisement, AdvertisementProps } from './dist/commonjs/views/Advertisement';
 
