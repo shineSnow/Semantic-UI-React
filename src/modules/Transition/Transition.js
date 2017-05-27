@@ -13,19 +13,13 @@ import TransitionGroup from './TransitionGroup'
 
 const debug = makeDebugger('Transition')
 
-export const ENTERED = 'ENTERED'
-export const ENTERING = 'ENTERING'
-export const EXITED = 'EXITED'
-export const EXITING = 'EXITING'
-export const UNMOUNTED = 'UNMOUNTED'
-
 /**
  * A transition is an animation usually used to move content in or out of view.
  */
 export default class Transition extends Component {
   static propTypes = {
     /** Named animation event to used. Must be defined in CSS. */
-    animation: PropTypes.oneOf(SUI.TRANSITION),
+    animation: PropTypes.oneOf(SUI.TRANSITIONS),
 
     /** Primary content. */
     children: PropTypes.node,
@@ -82,6 +76,7 @@ export default class Transition extends Component {
     animation: 'fade',
     duration: 500,
     into: true,
+    mountOnEnter: true,
     transitionAppear: true,
     unmountOnExit: true,
   }
@@ -90,6 +85,12 @@ export default class Transition extends Component {
     name: 'Transition',
     type: META.TYPES.MODULE,
   }
+
+  static ENTERED = 'ENTERED'
+  static ENTERING = 'ENTERING'
+  static EXITED = 'EXITED'
+  static EXITING = 'EXITING'
+  static UNMOUNTED = 'UNMOUNTED'
 
   static Group = TransitionGroup
 
@@ -116,8 +117,8 @@ export default class Transition extends Component {
 
     const { current: status, next } = this.computeStatuses(nextProps)
 
+    this.nextStatus = next
     if (status) this.setState({ status })
-    if (next) this.nextStatus = next
   }
 
   componentDidUpdate() {
@@ -128,78 +129,48 @@ export default class Transition extends Component {
 
   componentWillUnmount() {
     debug('componentWillUnmount()')
-
-    this.cancelNextCallback()
   }
 
   // ----------------------------------------
   // Callback handling
   // ----------------------------------------
 
-  cancelNextCallback = () => {
-    if (!this.nextCallback) return
+  handleStart = () => {
+    const { duration } = this.props
+    const status = this.nextStatus
 
-    this.nextCallback.cancel()
-    this.nextCallback = null
+    this.nextStatus = null
+    this.setState({ status, animating: true }, () => {
+      _.invoke(this.props, 'onStart', null, { ...this.props, status })
+      setTimeout(this.handleComplete, duration)
+    })
   }
 
-  onTransitionEnd = (duration, handler) => {
-    this.setNextCallback(handler)
-
-    if (!duration) return this.nextCallback()
-    return setTimeout(this.nextCallback, duration)
-  }
-
-  setNextCallback = callback => {
-    let active = true
-
-    this.nextCallback = (event) => {
-      if (active) {
-        active = false
-        this.nextCallback = null
-        callback(event)
-      }
-    }
-
-    this.nextCallback.cancel = () => {
-      active = false
-    }
-
-    return this.nextCallback
-  }
-
-  updateStatus = () => {
-    const { duration, unmountOnExit } = this.props
+  handleComplete = () => {
     const { status: current } = this.state
 
+    _.invoke(this.props, 'onComplete', null, { ...this.props, status: current })
+
     if (this.nextStatus) {
-      // nextStatus will always be ENTERING or EXITING.
-      this.cancelNextCallback()
-
-      const status = this.nextStatus === ENTERING ? ENTERING : EXITING
-      const callback = this.nextStatus === ENTERING ? this.setEntered : this.setExited
-
-      this.nextStatus = null
-      this.setState({ status }, () => this.onTransitionEnd(duration, callback))
-
+      this.handleStart()
       return
     }
 
-    if (current === EXITED && unmountOnExit) this.setState({ status: UNMOUNTED })
+    const status = this.computeCompletedStatus()
+    const callback = current === Transition.ENTERING ? 'onShow' : 'onHide'
+
+    this.setState({ status, animating: false }, () => {
+      _.invoke(this.props, callback, null, { ...this.props, status })
+    })
   }
 
-  setEntered = () => {
-    const status = ENTERED
+  updateStatus = () => {
+    const { animating } = this.state
 
-    this.setState({ status })
-    _.invoke(this.props, 'onShow', null, { ...this.props, status })
-  }
-
-  setExited = () => {
-    const status = EXITED
-
-    this.setState({ status })
-    _.invoke(this.props, 'onHide', null, { ...this.props, status })
+    if (this.nextStatus) {
+      this.nextStatus = this.computeNextStatus()
+      if (!animating) this.handleStart()
+    }
   }
 
   // ----------------------------------------
@@ -207,19 +178,30 @@ export default class Transition extends Component {
   // ----------------------------------------
 
   computeClasses = () => {
-    const { status } = this.state
-    if (status === UNMOUNTED) return null
-
     const { animation, children } = this.props
+    const { animating, status } = this.state
+
     const childClasses = _.get(children, 'props.className')
+    const entire = _.includes(SUI.ENTIRE_TRANSITIONS, animation)
 
     return cx(
+      animation,
       childClasses,
-      useKeyOnly(status === ENTERING, 'in'),
-      useKeyOnly(status === EXITING, 'out'),
-      useKeyOnly(status === ENTERING || status === EXITING, 'animating transition visible'),
-      useKeyOnly(status === ENTERING || status === EXITING, animation),
+      useKeyOnly(animating, 'animating'),
+      useKeyOnly(entire && status === Transition.ENTERING, 'in'),
+      useKeyOnly(entire && status === Transition.EXITING, 'out'),
+      useKeyOnly(status === Transition.EXITED, 'hidden'),
+      useKeyOnly(status !== Transition.EXITED, 'visible'),
+      'transition',
     )
+  }
+
+  computeCompletedStatus = () => {
+    const { unmountOnExit } = this.props
+    const { status } = this.state
+
+    if (status === Transition.ENTERING) return Transition.ENTERED
+    return unmountOnExit ? Transition.UNMOUNTED : Transition.EXITED
   }
 
   computeInitialStatuses = () => {
@@ -233,15 +215,22 @@ export default class Transition extends Component {
     if (into) {
       if (transitionAppear) {
         return {
-          initial: EXITED,
-          next: ENTERING,
+          initial: Transition.EXITED,
+          next: Transition.ENTERING,
         }
       }
-      return { initial: ENTERED }
+      return { initial: Transition.ENTERED }
     }
 
-    if (mountOnEnter || unmountOnExit) return { initial: UNMOUNTED }
-    return { initial: EXITED }
+    if (mountOnEnter || unmountOnExit) return { initial: Transition.UNMOUNTED }
+    return { initial: Transition.EXITED }
+  }
+
+  computeNextStatus = () => {
+    const { animating, status } = this.state
+
+    if (animating) return status === Transition.ENTERING ? Transition.EXITING : Transition.ENTERING
+    return status === Transition.ENTERED ? Transition.EXITING : Transition.ENTERING
   }
 
   computeStatuses = props => {
@@ -250,13 +239,13 @@ export default class Transition extends Component {
 
     if (into) {
       return {
-        current: status === UNMOUNTED && EXITED,
-        next: (status !== ENTERING && status !== ENTERED) && ENTERING,
+        current: status === Transition.UNMOUNTED && Transition.EXITED,
+        next: (status !== Transition.ENTERING && status !== Transition.ENTERED) && Transition.ENTERING,
       }
     }
 
     return {
-      next: (status === ENTERING || status === ENTERED) && EXITING,
+      next: (status === Transition.ENTERING || status === Transition.ENTERED) && Transition.EXITING,
     }
   }
 
@@ -279,7 +268,7 @@ export default class Transition extends Component {
     const { children } = this.props
     const { status } = this.state
 
-    if (status === UNMOUNTED) return null
+    if (status === Transition.UNMOUNTED) return null
     return cloneElement(children, {
       className: this.computeClasses(),
       style: this.computeStyle(),

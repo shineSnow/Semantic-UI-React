@@ -44,7 +44,7 @@ export default class TransitionExampleExplorer extends Component {
         <Grid.Column>
           <Transition.Group duration={1500}>
             { visible && (
-              <Transition duration={1500}>
+              <Transition duration={1500} unmountOnExit={false}>
                 <Image size='medium' src='http://semantic-ui.com/images/leaves/1.png' />
               </Transition>
             )}

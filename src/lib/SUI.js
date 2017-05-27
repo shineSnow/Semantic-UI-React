@@ -36,7 +36,7 @@ export const ENTIRE_TRANSITIONS = [
 export const STATIC_TRANSITIONS = [
   'jiggle', 'flash',
 ]
-export const TRANSITION = [...ENTIRE_TRANSITIONS, ...STATIC_TRANSITIONS]
+export const TRANSITIONS = [...ENTIRE_TRANSITIONS, ...STATIC_TRANSITIONS]
 
 // Generated from:
 // https://github.com/Semantic-Org/Semantic-UI/blob/master/dist/components/icon.css

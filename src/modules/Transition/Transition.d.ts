@@ -2,7 +2,17 @@ import * as React from 'react';
 
 type ENTIRE_TRANSITIONS = 'scale' | 'fade' | 'fade up' | 'fade down' | 'fade left' | 'fade right';
 type STATIC_TRANSITIONS = 'jiggle' | 'flash';
+
 export type TRANSITION_TYPES = ENTIRE_TRANSITIONS | STATIC_TRANSITIONS;
+export type TRANSITION_STATUSES =  'ENTERED' | 'ENTERING' | 'EXITED' | 'EXITING' | 'UNMOUNTED';
+
+interface TransitionStatuses {
+  ENTERED: 'ENTERED';
+  ENTERING :'ENTERING';
+  EXITED: 'EXITED';
+  EXITING: 'EXITING';
+  UNMOUNTED: 'UNMOUNTED';
+}
 
 export interface TransitionProps {
   [key: string]: any;
@@ -62,10 +72,10 @@ export interface TransitionProps {
 }
 
 export interface TransitionEventData extends TransitionProps {
-  status: TRANSITION_TYPES;
+  status: TRANSITION_STATUSES;
 }
 
-interface TransitionComponent extends React.ComponentClass<TransitionProps> {
+interface TransitionComponent extends React.ComponentClass<TransitionProps>, TransitionStatuses {
 }
 
 declare const Transition: TransitionComponent;
