@@ -1,19 +1,26 @@
 import _ from 'lodash'
 import PropTypes from 'prop-types'
-import React, { cloneElement, isValidElement } from 'react'
+import React, { isValidElement } from 'react'
 
-import { getUnhandledProps, META } from '../../lib'
+import {
+  customPropTypes,
+  getElementType,
+  getUnhandledProps,
+  META,
+} from '../../lib'
 import { getChildMapping, mergeChildMappings } from '../../lib/ChildMapping'
+import Transition from './Transition'
 
 export default class TransitionGroup extends React.Component {
   static propTypes = {
-    component: PropTypes.any,
-    children: PropTypes.node,
-    duration: PropTypes.any,
-  }
+    /** An element type to render as (string or function). */
+    as: customPropTypes.as,
 
-  static defaultProps = {
-    component: 'div',
+    /** Primary content. */
+    children: PropTypes.node,
+
+    /** Duration of the CSS transition animation in microseconds. */
+    duration: PropTypes.number,
   }
 
   static _meta = {
@@ -21,19 +28,10 @@ export default class TransitionGroup extends React.Component {
     type: META.TYPES.MODULE,
   }
 
-  constructor(props, context) {
-    super(props, context)
+  constructor(...args) {
+    super(...args)
 
-    const { children, duration } = props
-    const mapping = getChildMapping(children, child => {
-      return cloneElement(child, {
-        duration,
-        into: true,
-        onExited: () => this.handleExited(child.key),
-      })
-    })
-
-    this.state = { children: mapping }
+    this.state = { children: this.computeInitialMapping() }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -58,32 +56,54 @@ export default class TransitionGroup extends React.Component {
 
       // item is new (entering)
       if (hasNext && (!hasPrev || isLeaving)) {
-        // console.log('entering', key)
-        children[key] = cloneElement(child, {
-          onExited,
-          into: true,
-          transitionAppear: true,
-          duration,
-        })
+        children[key] = (
+          <Transition
+            into
+            children={child}
+            duration={duration}
+            transitionAppear
+          />
+        )
       }
       // item is old (exiting)
       else if (!hasNext && hasPrev && !isLeaving) {
-        // console.log('leaving', key)
-        children[key] = cloneElement(child, { into: false, duration })
+        children[key] = (
+          <Transition
+            into={false}
+            children={child}
+            duration={duration}
+          />
+        )
       }
       // item hasn't changed transition states
       // copy over the last transition props;
       else if (hasNext && hasPrev && isValidElement(prevChild)) {
-        // console.log('unchanged', key)
-        children[key] = cloneElement(child, {
-          onExited,
-          into: prevChild.props.into,
-          transitionAppear: prevChild.props.transitionAppear,
-        })
+        children[key] = (
+          <Transition
+            into={ prevChild.props.into}
+            children={child}
+            duration={duration}
+            onHide={onExited}
+            transitionAppear={prevChild.props.transitionAppear}
+          />
+        )
       }
     })
 
     this.setState({ children })
+  }
+
+  computeInitialMapping = () => {
+    const { children, duration } = this.props
+
+    return getChildMapping(children, child => (
+      <Transition
+        children={child}
+        duration={duration}
+        into
+        onHide={this.handleExited(child.key)}
+      />
+    ))
   }
 
   handleExited = key => {
@@ -99,10 +119,10 @@ export default class TransitionGroup extends React.Component {
   };
 
   render() {
-    const { component: Component } = this.props
     const { children } = this.state
+    const ElementType = getElementType(TransitionGroup, this.props)
     const rest = getUnhandledProps(TransitionGroup, this.props)
 
-    return <Component {...rest}>{_.values(children)}</Component>
+    return <ElementType {...rest}>{_.values(children)}</ElementType>
   }
 }

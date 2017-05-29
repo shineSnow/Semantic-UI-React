@@ -1,20 +1,17 @@
+import _ from 'lodash'
 import { Children, isValidElement } from 'react'
 
 /**
  * Given `this.props.children`, return an object mapping key to child.
  *
- * @param {*} children `this.props.children`
+ * @param {object} children Element's children
+ * @param {function} [iteratee] Function that will be applied to each element
  * @return {object} Mapping of key to child
  */
-export function getChildMapping(children, mapFn) {
-  const mapper = child => mapFn && isValidElement(child) ? mapFn(child) : child
-  const result = Object.create(null)
+export function getChildMapping(children, iteratee) {
+  const mapper = child => iteratee && isValidElement(child) ? iteratee(child) : child
 
-  Children.map(children, mapper).forEach((child) => {
-    result[child.key] = child
-  })
-
-  return result
+  return _.keyBy(Children.map(children, mapper), 'key')
 }
 
 /**

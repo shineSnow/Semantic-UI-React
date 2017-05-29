@@ -77,8 +77,8 @@ export default class Transition extends Component {
     duration: 500,
     into: true,
     mountOnEnter: true,
-    transitionAppear: true,
-    unmountOnExit: true,
+    transitionAppear: false,
+    unmountOnExit: false,
   }
 
   static _meta = {

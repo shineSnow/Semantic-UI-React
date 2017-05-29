@@ -4,11 +4,11 @@ import ComponentExample from 'docs/app/Components/ComponentDoc/ComponentExample'
 import ExampleSection from 'docs/app/Components/ComponentDoc/ExampleSection'
 
 const TransitionTypesExamples = () => (
-  <ExampleSection title='Types'>
+  <ExampleSection title='Explorers'>
     <ComponentExample
-      title='Transition'
-      description='A transition can be applied to single item.'
-      examplePath='modules/Transition/Types/TransitionExampleTransition'
+      title='Single item'
+      description='You can apply different animations and duration with a transition explorer.'
+      examplePath='modules/Transition/Explorers/TransitionExampleSingleExplorer'
     />
   </ExampleSection>
 )
