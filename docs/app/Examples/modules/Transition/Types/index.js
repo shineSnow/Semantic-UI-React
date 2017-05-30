@@ -10,6 +10,11 @@ const TransitionTypesExamples = () => (
       description='A transition can be applied to single item.'
       examplePath='modules/Transition/Types/TransitionExampleTransition'
     />
+    <ComponentExample
+      title='Transition Group'
+      description='A transition can be applied to items group.'
+      examplePath='modules/Transition/Types/TransitionExampleGroup'
+    />
   </ExampleSection>
 )
 

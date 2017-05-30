@@ -7,6 +7,7 @@ import {
   getElementType,
   getUnhandledProps,
   META,
+  SUI,
 } from '../../lib'
 import { getChildMapping, mergeChildMappings } from '../../lib/ChildMapping'
 import Transition from './Transition'
@@ -16,11 +17,19 @@ export default class TransitionGroup extends React.Component {
     /** An element type to render as (string or function). */
     as: customPropTypes.as,
 
+    /** Named animation event to used. Must be defined in CSS. */
+    animation: PropTypes.oneOf(SUI.TRANSITIONS),
+
     /** Primary content. */
     children: PropTypes.node,
 
     /** Duration of the CSS transition animation in microseconds. */
     duration: PropTypes.number,
+  }
+
+  static defaultProps = {
+    animation: 'fade',
+    duration: 500,
   }
 
   static _meta = {
@@ -31,7 +40,15 @@ export default class TransitionGroup extends React.Component {
   constructor(...args) {
     super(...args)
 
-    this.state = { children: this.computeInitialMapping() }
+    const { children, duration } = this.props
+    this.state = { children: getChildMapping(children, child => (
+      <Transition
+        children={child}
+        duration={duration}
+        into
+        onHide={this.handleOnHide(child.key)}
+      />
+    )) }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -45,7 +62,7 @@ export default class TransitionGroup extends React.Component {
 
       if (!isValidElement(child)) return
 
-      const onExited = () => this.handleExited(key)
+      const onExited = () => this.handleOnHide(key)
       const duration = this.props.duration
 
       const hasPrev = key in prevChildMapping
@@ -93,23 +110,11 @@ export default class TransitionGroup extends React.Component {
     this.setState({ children })
   }
 
-  computeInitialMapping = () => {
-    const { children, duration } = this.props
+  handleOnHide = key => {
+    const { children } = this.props
+    const currentMapping = getChildMapping(children)
 
-    return getChildMapping(children, child => (
-      <Transition
-        children={child}
-        duration={duration}
-        into
-        onHide={this.handleExited(child.key)}
-      />
-    ))
-  }
-
-  handleExited = key => {
-    const currentChildMapping = getChildMapping(this.props.children)
-    if (key in currentChildMapping) return
-
+    if (!_.has(currentMapping, key)) return
     this.setState(state => {
       const children = { ...state.children }
       delete children[key]
