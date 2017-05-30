@@ -18,7 +18,7 @@ export default class TransitionExampleGroup extends Component {
 
   handleRemove = () => {
     const { items } = this.state
-    this.setState({ items: items.splice(-1, 1) })
+    this.setState({ items: items.slice(0, -1) })
   }
 
   render() {

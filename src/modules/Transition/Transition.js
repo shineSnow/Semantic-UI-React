@@ -65,6 +65,9 @@ export default class Transition extends Component {
      */
     onStart: PropTypes.func,
 
+    /** React's key of the element. */
+    reactKey: PropTypes.string,
+
     /** Run the enter animation when the component mounts, if it is initially shown. */
     transitionAppear: PropTypes.bool,
 

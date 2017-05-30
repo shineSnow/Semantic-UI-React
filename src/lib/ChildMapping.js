@@ -8,7 +8,7 @@ import { Children, isValidElement } from 'react'
  * @param {function} [iteratee] Function that will be applied to each element
  * @return {object} Mapping of key to child
  */
-export function getChildMapping(children, iteratee) {
+export const getChildMapping = (children, iteratee) => {
   const mapper = child => iteratee && isValidElement(child) ? iteratee(child) : child
 
   return _.keyBy(Children.map(children, mapper), 'key')
@@ -31,10 +31,7 @@ export function getChildMapping(children, iteratee) {
  * @return {object} a key set that contains all keys in `prev` and all keys
  * in `next` in a reasonable order.
  */
-export function mergeChildMappings(prev, next) {
-  prev = prev || {}
-  next = next || {}
-
+export function mergeChildMappings(prev = {}, next = {}) {
   function getValueForKey(key) {
     return key in next ? next[key] : prev[key]
   }

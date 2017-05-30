@@ -6,11 +6,14 @@ import {
   customPropTypes,
   getElementType,
   getUnhandledProps,
+  makeDebugger,
   META,
   SUI,
 } from '../../lib'
 import { getChildMapping, mergeChildMappings } from '../../lib/ChildMapping'
 import Transition from './Transition'
+
+const debug = makeDebugger('Transition:Group')
 
 export default class TransitionGroup extends React.Component {
   static propTypes = {
@@ -46,29 +49,28 @@ export default class TransitionGroup extends React.Component {
         children={child}
         duration={duration}
         into
-        onHide={this.handleOnHide(child.key)}
+        onHide={this.handleOnHide}
+        reactKey={child.key}
       />
     )) }
   }
 
   componentWillReceiveProps(nextProps) {
-    let prevChildMapping = this.state.children
-    let nextChildMapping = getChildMapping(nextProps.children)
+    debug('componentWillReceiveProps()')
 
-    let children = mergeChildMappings(prevChildMapping, nextChildMapping)
+    const { children: prevMapping } = this.state
+    const nextMapping = getChildMapping(nextProps.children)
+    const children = mergeChildMappings(prevMapping, nextMapping)
 
-    Object.keys(children).forEach((key) => {
-      let child = children[key]
-
+    _.forEach(children, (child, key) => {
       if (!isValidElement(child)) return
 
-      const onExited = () => this.handleOnHide(key)
       const duration = this.props.duration
 
-      const hasPrev = key in prevChildMapping
-      const hasNext = key in nextChildMapping
+      const hasPrev = key in prevMapping
+      const hasNext = key in nextMapping
 
-      const prevChild = prevChildMapping[key]
+      const prevChild = prevMapping[key]
       const isLeaving = isValidElement(prevChild) && !prevChild.props.into
 
       // item is new (entering)
@@ -78,6 +80,8 @@ export default class TransitionGroup extends React.Component {
             into
             children={child}
             duration={duration}
+            key={key}
+            reactKey={key}
             transitionAppear
           />
         )
@@ -89,6 +93,8 @@ export default class TransitionGroup extends React.Component {
             into={false}
             children={child}
             duration={duration}
+            key={key}
+            reactKey={key}
           />
         )
       }
@@ -100,7 +106,8 @@ export default class TransitionGroup extends React.Component {
             into={ prevChild.props.into}
             children={child}
             duration={duration}
-            onHide={onExited}
+            onHide={this.handleOnHide}
+            reactKey={key}
             transitionAppear={prevChild.props.transitionAppear}
           />
         )
@@ -110,20 +117,28 @@ export default class TransitionGroup extends React.Component {
     this.setState({ children })
   }
 
-  handleOnHide = key => {
+  handleOnHide = (e, props) => {
+    debug('handleOnHide', props)
+
     const { children } = this.props
+    const { reactKey } = props
     const currentMapping = getChildMapping(children)
 
-    if (!_.has(currentMapping, key)) return
+    if (!_.has(currentMapping, reactKey)) return
+
     this.setState(state => {
       const children = { ...state.children }
-      delete children[key]
+      delete children[reactKey]
 
       return { children }
     })
   };
 
   render() {
+    debug('render')
+    debug('props', this.props)
+    debug('state', this.state)
+
     const { children } = this.state
     const ElementType = getElementType(TransitionGroup, this.props)
     const rest = getUnhandledProps(TransitionGroup, this.props)
