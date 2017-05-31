@@ -418,9 +418,11 @@ export default class Dropdown extends Component {
     if (!prevState.focus && this.state.focus) {
       debug('dropdown focused')
       if (!this.isMouseDown) {
-        const { openOnFocus } = this.props
+        const { minCharacters, openOnFocus, search } = this.props
+        const openable = !search || (search && minCharacters === 1)
+
         debug('mouse is not down, opening')
-        if (openOnFocus) this.open()
+        if (openOnFocus && openable) this.open()
       }
       if (!this.state.open) {
         document.addEventListener('keydown', this.openOnArrow)
@@ -622,29 +624,34 @@ export default class Dropdown extends Component {
 
   handleMouseDown = (e) => {
     debug('handleMouseDown()')
-    const { onMouseDown } = this.props
-    if (onMouseDown) onMouseDown(e, this.props)
+
     this.isMouseDown = true
+    _.invoke(this.props, 'onMouseDown', e, this.props)
     // Do not access document when server side rendering
-    if (!isBrowser) return
-    document.addEventListener('mouseup', this.handleDocumentMouseUp)
+    if (isBrowser) document.addEventListener('mouseup', this.handleDocumentMouseUp)
   }
 
   handleDocumentMouseUp = () => {
     debug('handleDocumentMouseUp()')
+
     this.isMouseDown = false
     // Do not access document when server side rendering
-    if (!isBrowser) return
-    document.removeEventListener('mouseup', this.handleDocumentMouseUp)
+    if (isBrowser) document.removeEventListener('mouseup', this.handleDocumentMouseUp)
   }
 
-  handleClick = (e) => {
+  handleClick = e => {
     debug('handleClick()', e)
-    const { onClick } = this.props
-    if (onClick) onClick(e, this.props)
+
+    const { minCharacters, onClick, search } = this.props
+    const { open, searchQuery } = this.state
+
+    _.invoke(this.props, 'onClick', e, this.props)
     // prevent closeOnDocumentClick()
     e.stopPropagation()
-    this.toggle(e)
+
+    if(!search) return this.toggle(e)
+    if(open) return
+    if(searchQuery.length >= minCharacters || minCharacters === 1) this.open(e)
   }
 
   handleItemClick = (e, item) => {
@@ -681,10 +688,11 @@ export default class Dropdown extends Component {
 
   handleFocus = (e) => {
     debug('handleFocus()')
-    const { onFocus } = this.props
     const { focus } = this.state
+
     if (focus) return
-    if (onFocus) onFocus(e, this.props)
+
+    _.invoke(this.props, 'onFocus', e, this.props)
     this.setState({ focus: true })
   }
 
@@ -717,16 +725,17 @@ export default class Dropdown extends Component {
     const newQuery = e.target.value
 
     if (onSearchChange) onSearchChange(e, newQuery)
+    this.setState({
+      selectedIndex: 0,
+      searchQuery: newQuery,
+    })
 
-    if (newQuery.length >= minCharacters) {
-      // open search dropdown on search query
-      if (search && newQuery && !open) this.open()
-
-      this.setState({
-        selectedIndex: 0,
-        searchQuery: newQuery,
-      })
+    if(search && newQuery && open && newQuery.length < minCharacters) {
+      this.close()
+      return
     }
+    // open search dropdown on search query
+    if (search && newQuery && !open && newQuery.length >= minCharacters) this.open()
   }
 
   // ----------------------------------------
